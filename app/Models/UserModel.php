@@ -6,10 +6,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Laravel\Sanctum\HasApiTokens; // <-- Tambahkan
 
 class UserModel extends Authenticatable
 {
-    use HasFactory;
+    use HasApiTokens, HasFactory; // <-- Tambahkan HasApiTokens
 
     protected $table = 'm_users';
     protected $primaryKey = 'user_id';
@@ -44,7 +45,6 @@ class UserModel extends Authenticatable
 
     public function hasPermission($permission): bool
     {
-        // Map permissions to roles (customize this based on your application)
         $permissionMap = [
             'admin' => ['admin'],
             'sarpras' => ['sarpras', 'admin'],
@@ -53,7 +53,6 @@ class UserModel extends Authenticatable
             'tendik' => ['tendik'],
         ];
 
-        // Check if user has the required permission
         if (array_key_exists($permission, $permissionMap)) {
             return in_array($this->getRole(), $permissionMap[$permission]);
         }
