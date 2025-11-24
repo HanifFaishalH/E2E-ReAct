@@ -43,11 +43,7 @@ test.describe('Admin - Akses halaman Level', () => {
     await loginAdmin(page);
 
     await page.goto(levelUrl, { waitUntil: 'domcontentloaded' });
-
-    // Pastikan judul halaman tampil
     await expect(page.locator('h4.header-title')).toHaveText(/level/i);
-
-    // Tabel muncul
     await expect(page.locator('#table_level')).toBeVisible();
   });
 
@@ -75,7 +71,6 @@ test.describe('Admin - Akses halaman Level', () => {
     await loginAdmin(page);
     await page.goto(levelUrl);
 
-    // Pilih filter level (ambil option pertama selain default)
     const options = page.locator('#level_id option');
 
     const count = await options.count();
@@ -102,8 +97,6 @@ test.describe('Admin - Akses halaman Level', () => {
     await loginAdmin(page);
     await page.goto(levelUrl);
 
-    //:: Catatan
-    // Anda harus menyesuaikan URL modal (misal: /level/add atau /level/edit/1)
     const modalUrl = `${base}/level/add`;
 
     await page.evaluate((url) => {
