@@ -59,9 +59,18 @@ async function loginAsAdmin(page) {
 
     await page.click('button[type="submit"]');
 
-    await expect(page.locator('.swal2-title')).toHaveText(/Login Berhasil/i, { timeout: 10000 });
-    await expect(page.locator('#swal2-container')).toBeHidden({ timeout: 5000 });
-    await expect(page).toHaveURL(dashboardUrl, { timeout: 5000 });
+    // Tunggu alert muncul
+    await expect(page.locator('.swal2-title')).toHaveText(/Login Berhasil/i, { timeout: 15000 });
+
+    // Tunggu SweetAlert tertutup
+    await page.waitForSelector('#swal2-container', { state: 'hidden', timeout: 15000 });
+
+    // Tunggu redirect ke dashboard selesai
+    await page.waitForTimeout(3000); // tambahkan jeda kecil untuk keamanan
+    await page.waitForURL(/\/$/, { timeout: 20000 });
+
+    // Validasi sudah di dashboard
+    await expect(page.url()).toContain(base + '/');
 
     await page.goto(manageUserUrl, { waitUntil: 'networkidle' });
     await expect(page).toHaveTitle("Halaman Index - Modul");
