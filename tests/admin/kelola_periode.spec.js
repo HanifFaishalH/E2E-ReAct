@@ -112,7 +112,6 @@ test.describe('Admin - Kelola Periode', () => {
 
   /* ============================================================================
       TEST 5: Export PDF Berhasil (HAPPY PATH)
-      NOTE: Test ini SEKARANG AKAN GAGAL (FAILED) karena kita menunggu halaman termuat.
   ============================================================================ */
   test('Export PDF berhasil tanpa error', async ({ page }) => {
     await loginAdmin(page);
@@ -120,21 +119,13 @@ test.describe('Admin - Kelola Periode', () => {
 
     // Setup filter bulan agar data ada
     await page.selectOption('#bulan', '2'); 
-
-    // Klik tombol Export DAN tunggu sampai halaman selesai loading (termasuk jika redirect ke error page)
     await Promise.all([
-      page.waitForLoadState('networkidle'), // Menunggu sampai tidak ada koneksi jaringan aktif (halaman full loaded)
+      page.waitForLoadState('networkidle'), 
       page.click('#btn-export-pdf')
     ]);
 
-    // --- EKSPEKTASI POSITIF (Happy Path) ---
-    // Sekarang, kita berada di halaman Error 500 yang sudah selesai dimuat.
-    // Playwright akan menemukan teks "Class ... not found" di layar.
-    // Karena kita menggunakan `.not.toContainText`, assertion ini akan GAGAL (FAILED).
-    // Inilah yang kita inginkan untuk mendeteksi bug.
     await expect(page.locator('body')).not.toContainText('Class "Barryvdh\\DomPDF\\Facade\\Pdf" not found');
     
-    // Kita juga berharap tidak ada teks "Ignition" (Tanda error Laravel)
     await expect(page.locator('body')).not.toContainText('Ignition'); 
   });
 
