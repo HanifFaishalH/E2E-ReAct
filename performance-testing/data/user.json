@@ -1,0 +1,12 @@
+[
+  { "username": "admin", "password": "admin" },
+  { "username": "mahasiswa", "password": "mahasiswa" },
+  { "username": "dosen", "password": "dosen" },
+  { "username": "tendik", "password": "tendik" },
+  { "username": "teknisi1", "password": "teknisi1" },
+  { "username": "teknisi2", "password": "teknisi2" },
+  { "username": "teknisi3", "password": "teknisi3" },
+  { "username": "teknisi4", "password": "teknisi4" },
+  { "username": "teknisi5", "password": "teknisi5" },
+  { "username": "sarpras", "password": "sarpras" }
+]
