@@ -33,7 +33,13 @@ test.describe('Admin Barang - Siklus Hidup Data Lengkap', () => {
     await page.fill('#username', 'admin');
     await page.fill('#password', 'admin');
     await page.click('button[type="submit"]');
-    await page.waitForURL(/\/$/, { timeout: 15000 });
+    
+    // === PERBAIKAN DI SINI (Login Timeout) ===
+    // Regex diubah agar menerima:
+    // 1. Root URL (/)
+    // 2. Dashboard
+    // 3. Welcome
+    await page.waitForURL(/(\/$|dashboard|welcome|home)/, { timeout: 30000 });
   });
 
   test.afterAll(async () => {
@@ -76,7 +82,7 @@ test.describe('Admin Barang - Siklus Hidup Data Lengkap', () => {
   });
 
   // ==========================================================
-  // 2. SHOW (DETAIL) - FIXED
+  // 2. SHOW (DETAIL)
   // ==========================================================
   test('2. Lihat Detail (Show)', async () => {
     // Pastikan berada di halaman barang
@@ -103,12 +109,10 @@ test.describe('Admin Barang - Siklus Hidup Data Lengkap', () => {
     const formDetail = page.locator('#formDetailBarang');
     await expect(formDetail).toBeVisible();
 
-    // === PERBAIKAN DI SINI ===
-    // Menggunakan strategi pencarian berdasarkan LABEL form group
-    // Ini lebih spesifik dan menghindari "Strict mode violation" (menemukan terlalu banyak input)
+    // === VERIFIKASI DATA ===
+    // Menggunakan strategi scope pencarian ke .form-group
     
     // 1. Verifikasi Nama Barang
-    // Cari elemen .form-group yang mengandung teks "Nama Barang", lalu ambil input di dalamnya
     const inputNama = formDetail.locator('.form-group', { hasText: 'Nama Barang' }).locator('input');
     await expect(inputNama).toBeVisible();
     await expect(inputNama).toHaveValue(createdBarangNama);

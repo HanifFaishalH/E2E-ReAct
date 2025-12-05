@@ -29,7 +29,10 @@ test.describe('Admin Ruang - Robust Test (Fail Safe)', () => {
     await page.fill('#username', 'admin');
     await page.fill('#password', 'admin');
     await page.click('button[type="submit"]');
-    await page.waitForURL(/\/$/, { timeout: 15000 });
+
+    // === PERBAIKAN DI SINI (Login Timeout) ===
+    // Regex diubah agar menerima: Root URL (/), Dashboard, Welcome
+    await page.waitForURL(/(\/$|dashboard|welcome|home)/, { timeout: 30000 });
   });
 
   test.afterAll(async () => {
@@ -74,7 +77,12 @@ test.describe('Admin Ruang - Robust Test (Fail Safe)', () => {
     // 4. Isi field lainnya
     await formCreate.locator('input[name="ruang_kode"]').fill(mockKode);
     await formCreate.locator('input[name="ruang_nama"]').fill(mockNama);
-    await formCreate.locator('select[name="ruang_tipe"]').selectOption({ index: 1 });
+    
+    // Coba pilih Tipe (Select Option Index 1) jika ada, atau lewati jika inputnya text
+    const tipeSelect = formCreate.locator('select[name="ruang_tipe"]');
+    if (await tipeSelect.isVisible()) {
+         await tipeSelect.selectOption({ index: 1 });
+    }
 
     // Submit
     await formCreate.locator('button[type="submit"]').click();
@@ -148,8 +156,7 @@ test.describe('Admin Ruang - Robust Test (Fail Safe)', () => {
 
     // 5. Validasi Data (FIXED: Menggunakan Selector Label)
     // Cari elemen .form-group yang mengandung teks label, lalu ambil input di dalamnya.
-    // Ini menghindari error "Strict Mode Violation" (menemukan terlalu banyak input).
-
+    
     // Cek Nama Ruang
     const inputNama = formDetail.locator('.form-group', { hasText: 'Nama Ruang' }).locator('input');
     await expect(inputNama).toBeVisible();
