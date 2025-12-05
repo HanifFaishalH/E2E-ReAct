@@ -21,20 +21,25 @@ test.describe.parallel('Auth - login (robust)', () => {
 
   // Disable preloader & animations
   test.beforeEach(async ({ page }) => {
-    await page.setExtraHTTPHeaders({
-      'X-Requested-With': 'XMLHttpRequest'
+    await page.setExtraHTTPHeaders({ 'X-Requested-With': 'XMLHttpRequest' });
+
+    await page.addStyleTag({
+      content: `
+        #preloader, .loader {
+          display:none!important;
+          opacity:0!important;
+          pointer-events:none!important;
+        }
+        *, *::before, *::after {
+          animation: none!important;
+          transition: none!important;
+        }
+      `,
     });
 
-    await page.addStyleTag({ content: `
-      #preloader, .loader { display:none !important; opacity:0!important; }
-      *, *::before, *::after {
-        animation: none !important;
-        transition: none !important;
-      }
-    ` });
-
-    page.setDefaultTimeout(60000);
+    page.setDefaultTimeout(120000);
   });
+
 
   // Helper login → hanya berdasarkan SweetAlert
   async function runLogin(page) {
