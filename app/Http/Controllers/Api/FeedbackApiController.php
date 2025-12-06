@@ -17,16 +17,32 @@ class FeedbackApiController extends Controller
     public function index()
     {
         try {
+            $userId = Auth::id();
+
+            if (!$userId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Token tidak valid atau user belum login.'
+                ], 401);
+            }
+
             $feedbacks = DB::table('t_feedback')
                 ->join('t_laporan_kerusakan', 't_feedback.laporan_id', '=', 't_laporan_kerusakan.laporan_id')
-                ->select('t_feedback.*', 't_laporan_kerusakan.laporan_judul')
-                ->where('t_feedback.user_id', Auth::id())
+                ->select(
+                    't_feedback.feedback_id',
+                    't_feedback.laporan_id',
+                    't_laporan_kerusakan.laporan_judul',
+                    't_feedback.rating',
+                    't_feedback.komentar',
+                    't_feedback.created_at'
+                )
+                ->where('t_feedback.user_id', $userId)
                 ->orderBy('t_feedback.created_at', 'desc')
                 ->get();
 
             return response()->json([
                 'success' => true,
-                'message' => 'Daftar umpan balik berhasil diambil',
+                'message' => 'Daftar umpan balik milik user berhasil diambil.',
                 'data' => $feedbacks
             ]);
         } catch (Exception $e) {
@@ -38,25 +54,34 @@ class FeedbackApiController extends Controller
     }
 
     /**
-     * 🔹 Ambil daftar laporan yang bisa diberi umpan balik (status selesai & belum diberi feedback)
+     * 🔹 Daftar laporan yang bisa diberi umpan balik (status selesai & belum diberi feedback)
      */
-    public function availableReports()
+    public function availableReports(Request $request)
     {
         try {
-            $available = DB::table('t_laporan_kerusakan')
+            $userId = Auth::id() ?? $request->user()?->id ?? $request->query('user_id');
+
+            if (!$userId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Token tidak valid atau user belum login.'
+                ], 401);
+            }
+
+            $laporans = DB::table('t_laporan_kerusakan')
                 ->where('status_laporan', 'selesai')
-                ->whereNotIn('laporan_id', function ($query) {
+                ->whereNotIn('laporan_id', function ($query) use ($userId) {
                     $query->select('laporan_id')
                         ->from('t_feedback')
-                        ->where('user_id', Auth::id());
+                        ->where('user_id', $userId);
                 })
                 ->select('laporan_id', 'laporan_judul', 'status_laporan')
                 ->get();
 
             return response()->json([
                 'success' => true,
-                'message' => 'Daftar laporan yang dapat diberi umpan balik berhasil diambil',
-                'data' => $available
+                'message' => 'Daftar laporan yang bisa diberi feedback berhasil diambil.',
+                'data' => $laporans
             ]);
         } catch (Exception $e) {
             return response()->json([
@@ -66,8 +91,9 @@ class FeedbackApiController extends Controller
         }
     }
 
+
     /**
-     * 🔹 Simpan umpan balik baru
+     * 🔹 Simpan feedback baru (hanya jika user login)
      */
     public function store(Request $request)
     {
@@ -85,11 +111,32 @@ class FeedbackApiController extends Controller
         }
 
         try {
+            $userId = Auth::id();
+            if (!$userId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User belum login.'
+                ], 401);
+            }
+
+            // Cek apakah user ini sudah pernah memberi feedback untuk laporan tersebut
+            $existing = DB::table('t_feedback')
+                ->where('laporan_id', $request->laporan_id)
+                ->where('user_id', $userId)
+                ->first();
+
+            if ($existing) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Anda sudah memberikan feedback untuk laporan ini.'
+                ], 409);
+            }
+
             $nextId = DB::table('t_feedback')->max('feedback_id') + 1;
 
             DB::table('t_feedback')->insert([
                 'feedback_id' => $nextId,
-                'user_id' => Auth::id(),
+                'user_id' => $userId,
                 'laporan_id' => $request->laporan_id,
                 'rating' => $request->rating,
                 'komentar' => $request->komentar,
@@ -99,19 +146,19 @@ class FeedbackApiController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Umpan balik berhasil disimpan',
+                'message' => 'Umpan balik berhasil disimpan.',
                 'data' => [
                     'feedback_id' => $nextId,
                     'laporan_id' => $request->laporan_id,
                     'rating' => $request->rating,
                     'komentar' => $request->komentar,
-                    'user_id' => Auth::id(),
+                    'user_id' => $userId,
                 ]
             ], 201);
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal menyimpan umpan balik: ' . $e->getMessage()
+                'message' => 'Gagal menyimpan feedback: ' . $e->getMessage()
             ], 500);
         }
     }
