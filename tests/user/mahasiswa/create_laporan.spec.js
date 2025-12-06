@@ -3,11 +3,11 @@ import { test, expect } from '@playwright/test';
 
 test.describe.configure({ timeout: 120000 });
 
-test.describe('Fitur Laporan - Dosen', () => {
+test.describe('Fitur Laporan - Mahasiswa', () => {
   const base = 'https://reportaction.dbsnetwork.my.id';
   const loginUrl = `${base}/login`;
 
-  test('Dosen dapat membuat laporan kerusakan', async ({ page }) => {
+  test('Mahasiswa dapat membuat laporan kerusakan', async ({ page }) => {
     test.setTimeout(120000);
     await page.setViewportSize({ width: 1920, height: 1080 });
 
@@ -48,7 +48,7 @@ test.describe('Fitur Laporan - Dosen', () => {
     await page.selectOption('select[name="ruang_id"]', { index: 1 });
     await page.waitForTimeout(1000);
     await page.selectOption('select[name="sarana_id"]', { index: 1 });
-    await page.fill('input[name="laporan_judul"]', 'Testing laporan dosen');
+    await page.fill('input[name="laporan_judul"]', 'Testing laporan Mahasiswa');
     await page.selectOption('select[name="tingkat_kerusakan"]', 'tinggi');
     await page.selectOption('select[name="tingkat_urgensi"]', 'sedang');
     await page.selectOption('select[name="dampak_kerusakan"]', 'besar');
