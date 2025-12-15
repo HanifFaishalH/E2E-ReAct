@@ -50,4 +50,10 @@ class SaranaModel extends Model
     {
         return $this->belongsTo(GedungModel::class, 'gedung_id', 'gedung_id');
     }
+
+    // Relasi ke LaporanModel
+    public function laporan()
+    {
+        return $this->hasMany(LaporanModel::class, 'sarana_id', 'sarana_id');
+    }
 }
