@@ -14,12 +14,9 @@ class TeknisiModel extends Model
     public $timestamps = true;
 
     protected $fillable = [
+        'level_id',
         'user_id',
-        'nama_teknisi',
         'keahlian',     // contoh: listrik, AC, komputer
-        'telepon',
-        'email',
-        'status',       // aktif / nonaktif
     ];
 
     public function level() {

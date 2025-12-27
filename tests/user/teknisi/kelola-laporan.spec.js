@@ -1,133 +1,190 @@
 // @ts-check
 import { test, expect } from '@playwright/test';
 
-test.describe('Teknisi - Kelola Laporan Tests', () => {
-    test.beforeEach(async ({ page }) => {
-        // Login as teknisi
-        await page.goto('/login');
-        await page.waitForTimeout(2000);
-        
-        await page.fill('input[name="username"]', 'teknisi1');
-        await page.fill('input[name="password"]', 'teknisi1');
-        
-        // Click and wait for navigation
-        await page.click('button[type="submit"]');
-        await page.waitForTimeout(4000); // Wait longer for redirect
-        
-        // Verify not on login page anymore
-        const url = page.url();
-        console.log('Current URL after login:', url);
-    });
+/**
+ * E2E Test untuk Kelola Laporan - User Teknisi
+ * Fitur: Melihat, Filter, dan Mengelola Laporan
+ */
 
-    test('should login and navigate to kelola laporan page', async ({ page }) => {
-        // Navigate to kelola laporan with waitUntil option
-        const response = await page.goto('/laporan/kelola', { 
-            waitUntil: 'domcontentloaded',
-            timeout: 30000 
-        }).catch(async (error) => {
-            console.log('Navigation error:', error.message);
-            // Try to check current page anyway
-            const currentUrl = page.url();
-            console.log('Current URL after error:', currentUrl);
-            return null;
-        });
-        
-        await page.waitForTimeout(2000);
+// Kredensial teknisi untuk testing
+const TEKNISI_CREDENTIALS = {
+  username: 'teknisi1',
+  password: 'teknisi1'
+};
 
-        // Check if page loaded (don't be strict about URL)
-        const bodyContent = await page.textContent('body').catch(() => '');
-        
-        if (bodyContent) {
-            console.log('✓ Page has content');
-            expect(bodyContent.length).toBeGreaterThan(0);
-        } else {
-            console.log('⚠ Page loaded but no content detected');
-            expect(true).toBe(true); // Pass anyway
-        }
-    });
+/**
+ * Helper function untuk login
+ * @param {import('@playwright/test').Page} page
+ */
+async function loginAsTeknisi(page) {
+  await page.goto('/login');
+  await page.waitForLoadState('networkidle');
+  await page.fill('input[name="username"]#username', TEKNISI_CREDENTIALS.username);
+  await page.fill('input[name="password"]#password', TEKNISI_CREDENTIALS.password);
+  await page.click('button[type="submit"]');
+  
+  // Tunggu cukup lama untuk SweetAlert dan redirect
+  await page.waitForTimeout(5000);
+}
 
-    test('should check for laporan table', async ({ page }) => {
-        // Navigate to kelola laporan
-        const currentUrl = page.url();
-        console.log('Starting from URL:', currentUrl);
-        
-        // Only navigate if not already on a valid page
-        if (currentUrl.includes('login')) {
-            console.log('Still on login, trying to navigate...');
-            await page.goto('/laporan/kelola', { 
-                waitUntil: 'domcontentloaded',
-                timeout: 30000 
-            }).catch(() => console.log('Navigation failed'));
-            await page.waitForTimeout(2000);
-        }
+test.describe('Teknisi - Kelola Laporan', () => {
+  
+  test.beforeEach(async ({ page }) => {
+    // Login sebelum setiap test
+    await loginAsTeknisi(page);
+  });
 
-        // Check for table presence
-        const tableCount = await page.locator('table').count();
-        
-        if (tableCount > 0) {
-            console.log('✓ Table found on page');
-            expect(tableCount).toBeGreaterThan(0);
-        } else {
-            console.log('⚠ No table found, checking if page has any content');
-            const hasContent = await page.locator('body').textContent();
-            expect(hasContent).toBeTruthy();
-        }
-    });
+  test('TC-KELOLA-01: Melihat halaman kelola laporan', async ({ page }) => {
+    // Navigasi ke halaman Kelola Laporan
+    await page.goto('/laporan/kelola');
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(4000);
+    
+    // Tunggu DataTable selesai load
+    await page.waitForSelector('table#table_laporan', { timeout: 20000 });
+    
+    // Verifikasi tabel laporan muncul
+    await expect(page.locator('table#table_laporan')).toBeVisible({ timeout: 10000 });
+    
+    // Verifikasi ada kolom-kolom yang sesuai
+    await expect(page.locator('th:has-text("No")')).toBeVisible();
+    await expect(page.locator('th:has-text("Judul")')).toBeVisible();
+    await expect(page.locator('th:has-text("Status Laporan")')).toBeVisible();
+    await expect(page.locator('th:has-text("Aksi")')).toBeVisible();
+  });
 
-    test('should view laporan details', async ({ page }) => {
-        // Navigate to kelola laporan if needed
-        const currentUrl = page.url();
-        
-        if (!currentUrl.includes('kelola')) {
-            await page.goto('/laporan/kelola', { 
-                waitUntil: 'domcontentloaded',
-                timeout: 30000 
-            }).catch(() => console.log('Navigation failed'));
-            await page.waitForTimeout(2000);
-        }
+  test('TC-KELOLA-02: Verifikasi filter status tersedia', async ({ page }) => {
+    await page.goto('/laporan/kelola');
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(4000);
+    
+    // Tunggu DataTable selesai load
+    await page.waitForSelector('table#table_laporan', { timeout: 20000 });
+    
+    // Verifikasi dropdown filter status ada
+    const filterStatus = page.locator('select#status[name="status"]');
+    await expect(filterStatus).toBeVisible({ timeout: 10000 });
+    
+    // Verifikasi opsi filter ada
+    const optionCount = await filterStatus.locator('option').count();
+    expect(optionCount).toBeGreaterThan(0);
+  });
 
-        // Check if there are any rows in the table
-        const tableRows = await page.locator('tbody tr, table tr').count();
-        if (tableRows > 0) {
-            console.log(`✓ Table has ${tableRows} rows`);
-            
-            // Try to find detail/view buttons
-            const detailButtons = await page.locator('button:has-text("Detail"), a:has-text("Detail"), button.btn-info, a.btn-info').count();
-            if (detailButtons > 0) {
-                console.log(`✓ Found ${detailButtons} detail buttons`);
-                expect(detailButtons).toBeGreaterThan(0);
-            }
-        } else {
-            console.log('⚠ No table rows found or table is empty');
-        }
+  test('TC-KELOLA-03: Filter laporan dengan status pending', async ({ page }) => {
+    await page.goto('/laporan/kelola');
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(4000);
+    
+    // Tunggu DataTable selesai load
+    await page.waitForSelector('table#table_laporan', { timeout: 20000 });
+    
+    // Filter dengan status "pending"
+    await page.selectOption('select#status[name="status"]', 'pending');
+    await page.waitForTimeout(4000);
+    
+    // Verifikasi tabel masih terlihat
+    await expect(page.locator('table#table_laporan')).toBeVisible({ timeout: 10000 });
+  });
 
-        // Always pass this test
-        expect(true).toBe(true);
-    });
+  test('TC-KELOLA-04: Filter laporan dengan status proses', async ({ page }) => {
+    await page.goto('/laporan/kelola');
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(4000);
+    
+    // Tunggu DataTable selesai load
+    await page.waitForSelector('table#table_laporan', { timeout: 20000 });
+    await page.waitForTimeout(1000);
+    
+    // Filter dengan status "proses"
+    await page.selectOption('select#status[name="status"]', 'proses');
+    await page.waitForTimeout(4000);
+    
+    // Verifikasi tabel masih terlihat
+    await expect(page.locator('table#table_laporan')).toBeVisible({ timeout: 15000 });
+  });
 
-    test('should check for accept/reject action buttons', async ({ page }) => {
-        // Navigate to kelola laporan if needed
-        const currentUrl = page.url();
-        
-        if (!currentUrl.includes('kelola')) {
-            await page.goto('/laporan/kelola', { 
-                waitUntil: 'domcontentloaded',
-                timeout: 30000 
-            }).catch(() => console.log('Navigation failed'));
-            await page.waitForTimeout(2000);
-        }
+  test('TC-KELOLA-05: Filter laporan dengan status selesai', async ({ page }) => {
+    await page.goto('/laporan/kelola');
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(4000);
+    
+    // Tunggu DataTable selesai load
+    await page.waitForSelector('table#table_laporan', { timeout: 20000 });
+    await page.waitForTimeout(1000);
+    
+    // Filter dengan status "selesai"
+    await page.selectOption('select#status[name="status"]', 'selesai');
+    await page.waitForTimeout(4000);
+    
+    // Verifikasi tabel masih terlihat
+    await expect(page.locator('table#table_laporan')).toBeVisible({ timeout: 15000 });
+  });
 
-        // Try to find action buttons (accept/reject/finish)
-        const actionButtons = await page.locator('button, a.btn').count();
-        console.log(`Found ${actionButtons} interactive elements`);
-        
-        if (actionButtons > 0) {
-            console.log('✓ Page has action buttons');
-            expect(actionButtons).toBeGreaterThan(0);
-        } else {
-            console.log('⚠ No action buttons found');
-            const pageContent = await page.locator('body').textContent();
-            expect(pageContent).toBeTruthy();
-        }
-    });
+  test('TC-KELOLA-06: Reset filter ke semua status', async ({ page }) => {
+    await page.goto('/laporan/kelola');
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(4000);
+    
+    // Tunggu DataTable selesai load
+    await page.waitForSelector('table#table_laporan', { timeout: 20000 });
+    
+    // Filter dengan status tertentu
+    await page.selectOption('select#status[name="status"]', 'pending');
+    await page.waitForTimeout(4000);
+    
+    // Reset filter ke semua status
+    await page.selectOption('select#status[name="status"]', '');
+    await page.waitForTimeout(4000);
+    
+    // Verifikasi tabel masih terlihat
+    await expect(page.locator('table#table_laporan')).toBeVisible({ timeout: 10000 });
+  });
+
+  test('TC-KELOLA-07: Verifikasi DataTable search berfungsi', async ({ page }) => {
+    await page.goto('/laporan/kelola');
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(3000);
+    
+    // Verifikasi search box DataTable ada
+    const searchBox = page.locator('input[type="search"]');
+    await expect(searchBox).toBeVisible({ timeout: 10000 });
+    
+    // Test search functionality
+    await searchBox.fill('test');
+    await page.waitForTimeout(1000);
+    
+    // Verifikasi tabel masih terlihat
+    await expect(page.locator('table#table_laporan')).toBeVisible({ timeout: 10000 });
+  });
+
+  test('TC-KELOLA-08: Verifikasi DataTable pagination info', async ({ page }) => {
+    await page.goto('/laporan/kelola');
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(3000);
+    
+    // Verifikasi pagination info ada
+    await expect(page.locator('.dataTables_info')).toBeVisible({ timeout: 10000 });
+  });
+
+  test('TC-KELOLA-09: Verifikasi kolom tabel lengkap', async ({ page }) => {
+    await page.goto('/laporan/kelola');
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(2000);
+    
+    // Verifikasi semua kolom ada
+    await expect(page.locator('th:has-text("No")')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('th:has-text("Judul")')).toBeVisible();
+    await expect(page.locator('th:has-text("Status Laporan")')).toBeVisible();
+    await expect(page.locator('th:has-text("Aksi")')).toBeVisible();
+  });
+
+  test('TC-KELOLA-10: Verifikasi header title halaman', async ({ page }) => {
+    await page.goto('/laporan/kelola');
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(2000);
+    
+    // Verifikasi ada header title
+    await expect(page.locator('h4.header-title')).toBeVisible({ timeout: 10000 });
+  });
+
 });
